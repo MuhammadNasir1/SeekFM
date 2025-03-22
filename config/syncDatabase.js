@@ -1,5 +1,6 @@
 import sequelize from "./database.js";
 import User from "../models/userModel.js";
+import Category from "../models/categoryModel.js";
 
 const syncDatabase = async () => {
   try {
