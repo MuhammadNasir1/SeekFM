@@ -1,4 +1,5 @@
-import { User } from "../models/index.js";
+import  User from "../models/userModel.js";
+// import { User } from "../config/syncDatabase.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
@@ -16,13 +17,13 @@ export const register = async (req, res) => {
     const user = await User.create({ name, email, password, phone });
 
     // Remove password before sending the response
-    // const { password: _, ...userWith.outPassword } = user.get({ plain: true });
+    const { password: _, ...userWithoutPassword } = user.get({ plain: true });
 
     return res.status(200).json({
       success: true,
       message: "User registered",
       user: userWithoutPassword,
-    });
+  });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }
@@ -33,7 +34,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ where: { email } });
-  if (!user)
+    if (!user)
       return res
         .status(400)
         .json({ success: false, message: "Invalid credentials" });
@@ -47,8 +48,14 @@ export const login = async (req, res) => {
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
+    const { password: _, ...userWithoutPassword } = user.get({ plain: true });
 
-    res.json({ success: true, message: "Login successful", token });
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: userWithoutPassword,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }
