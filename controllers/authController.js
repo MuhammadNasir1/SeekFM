@@ -1,4 +1,4 @@
-import  User from "../models/userModel.js";
+import User from "../models/userModel.js";
 // import { User } from "../config/syncDatabase.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -23,7 +23,7 @@ export const register = async (req, res) => {
       success: true,
       message: "User registered",
       user: userWithoutPassword,
-  });
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }
@@ -46,14 +46,14 @@ export const login = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "7d",
     });
     const { password: _, ...userWithoutPassword } = user.get({ plain: true });
 
     res.json({
       success: true,
       message: "Login successful",
-      token,
+      token: token,
       user: userWithoutPassword,
     });
   } catch (error) {
