@@ -2,9 +2,16 @@ import User from "../models/userModel.js";
 import path from "path";
 import multer from "multer";
 import fs from "fs";
+
+// Configure multer storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/user_images/"); // Save files in 'uploads/user_images/'
+    const uploadDir = "uploads/user_images/";
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     cb(null, `User${Date.now()}${path.extname(file.originalname)}`);
@@ -25,9 +32,106 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
-}).single("user_image"); // Accepts only one file with key 'user_image'
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+}).single("user_image");
 
+// Create or update channel
+// Create or update channel
+export const storeChannel = async (req, res) => {
+  try {
+    // Authentication check
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Wrap upload in a Promise to handle async properly
+    await new Promise((resolve, reject) => {
+      upload(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+          return reject(new Error(`Upload error: ${err.message}`));
+        } else if (err) {
+          return reject(err);
+        }
+        resolve();
+      });
+    });
+
+    const { channel_name, channel_description, channel_media_links } = req.body;
+
+    // Validate required fields
+    if (!channel_name) {
+      return res.status(400).json({
+        success: false,
+        message: "Channel name is required",
+      });
+    }
+
+    // Find existing user
+    const user = await User.findOne({ where: { id: req.user.userId } });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    let imagePath = user.user_image; // Preserve existing image path
+
+    // Handle new image upload
+    if (req.file) {
+      // Delete old image if it exists
+      if (user.user_image) {
+        try {
+          const oldImagePath = path.join(process.cwd(), user.user_image);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
+        } catch (deleteError) {
+          console.error("Error deleting old image:", deleteError);
+        }
+      }
+
+      // Store relative path only
+      imagePath = req.file.path.replace(/\\/g, "/");
+    }
+
+    // Update user record
+    const updatedData = {
+      channel_name,
+      channel_description: channel_description || null,
+      channel_media_links: channel_media_links || null,
+      user_image: imagePath,
+    };
+
+    await User.update(updatedData, {
+      where: { id: req.user.userId },
+    });
+
+    // Construct response with full URL for client if needed
+    const responseImage = imagePath
+      ? `${req.protocol}://${req.get("host")}/${imagePath}`
+      : null;
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      message: "Channel updated successfully",
+      data: {
+        channel_name,
+        channel_description: updatedData.channel_description,
+        channel_media_links: updatedData.channel_media_links,
+        user_image: responseImage,
+      },
+    });
+  } catch (error) {
+    console.error("Server error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
 export const getUser = async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {
@@ -73,85 +177,6 @@ export const getUser = async (req, res) => {
         user_image: userImageUrl,
         channel_media_links: parsedMediaLinks,
       },
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Server error", error });
-  }
-};
-// Create or update channel
-export const storeChannel = async (req, res) => {
-  try {
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(400).json({ success: false, message: err.message });
-      }
-
-      const { channel_name, channel_description, channel_media_links } =
-        req.body;
-
-      if (!channel_name) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Channel name is required" });
-      }
-
-      // Find existing user
-      const user = await User.findOne({ where: { id: req.user.userId } });
-
-      if (!user) {
-        return res
-          .status(404)
-          .json({ success: false, message: "User not found" });
-      }
-
-      let imageUrl = user.user_image; // Keep the old image if no new one is uploaded
-
-      if (req.file) {
-        // Delete the old image if it exists
-        if (user.user_image) {
-          const oldImagePath = user.user_image.replace(
-            `${req.protocol}://${req.get("host")}/`,
-            ""
-          );
-          const filePath = path.join(process.cwd(), oldImagePath);
-
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
-
-        // Set new image URL
-        const user_image = req.file.path.replace(/\\/g, "/");
-        imageUrl = `${req.protocol}://${req.get("host")}/${user_image}`;
-      }
-
-      // Update user record with new details
-      await User.update(
-        {
-          channel_name,
-          channel_description,
-          channel_media_links,
-          user_image: imageUrl, // Save new or old image
-        },
-        {
-          where: { id: req.user.userId },
-        }
-      );
-
-      res.json({
-        success: true,
-        message: "Channel updated successfully",
-        data: {
-          channel_name,
-          channel_description,
-          channel_media_links,
-          user_image: imageUrl,
-        },
-      });
     });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
