@@ -1,6 +1,5 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/database.js";
-
 const Category = sequelize.define(
   "Category",
   {
@@ -28,5 +27,4 @@ const Category = sequelize.define(
     timestamps: true,
   }
 );
-
 export default Category;

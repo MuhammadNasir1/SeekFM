@@ -5,6 +5,7 @@ import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoute.js";
 import CategoryRoutes from "./routes/categoryRoutes.js";
+import MediaRoutes from "./routes/mediaRoute.js";
 import path from "path";
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", CategoryRoutes);
+app.use("/api", MediaRoutes );
 
 // Start the server and sync database
 const PORT = process.env.PORT || 5000;

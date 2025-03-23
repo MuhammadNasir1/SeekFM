@@ -114,7 +114,7 @@ export const storeChannel = async (req, res) => {
 
     // Send response
     res.status(200).json({
-      success: true,
+    success: true,
       message: "Channel updated successfully",
       data: {
         channel_name,

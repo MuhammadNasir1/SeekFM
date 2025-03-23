@@ -1,4 +1,5 @@
 import sequelize from "./database.js";
+import Media from "../models/mediaModel.js";
 import User from "../models/userModel.js";
 import Category from "../models/categoryModel.js";
 
