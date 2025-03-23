@@ -28,8 +28,38 @@ const User = sequelize.define(
       allowNull: false,
       defaultValue: null,
     },
+    gender: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
+    followers: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: null,
+    },
+    following: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: null,
+    },
     user_image: {
       type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
+    channel_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
+    channel_description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
+    },
+    channel_media_links: {
+      type: DataTypes.JSON,
       allowNull: true,
       defaultValue: null,
     },
