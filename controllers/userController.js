@@ -281,5 +281,93 @@ export const updateChannel = async (req, res) => {
   }
 };
 
-// update profile 
+// update profile
 
+export const updateUser = async (req, res) => {
+  try {
+    // Authentication check
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Wrap upload in a Promise to handle async properly
+    await new Promise((resolve, reject) => {
+      upload(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+          return reject(new Error(`Upload error: ${err.message}`));
+        } else if (err) {
+          return reject(err);
+        }
+        resolve();
+      });
+    });
+
+    const { name, phone, gender, about } = req.body;
+
+    const user = await User.findOne({ where: { id: req.user.userId } });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    let imagePath = user.user_image; // Preserve existing image path
+
+    // Handle new image upload
+    if (req.file) {
+      try {
+        // Delete old image if it exists
+        if (user.user_image) {
+          const oldImagePath = path.join(process.cwd(), user.user_image);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
+        }
+      } catch (deleteError) {
+        console.error("Error deleting old image:", deleteError);
+      }
+
+      // Store relative path only
+      imagePath = req.file.path.replace(/\\/g, "/");
+    }
+
+    // Update user record
+    const updatedData = {
+      name,
+      phone,
+      gender,
+      about: about || null,
+      user_image: imagePath,
+    };
+
+    await User.update(updatedData, {
+      where: { id: req.user.userId },
+    });
+
+    // Construct response with full URL for client if needed
+    const responseImage = imagePath
+      ? `${req.protocol}://${req.get("host")}/${imagePath}`
+      : null;
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      data: {
+        name,
+        phone: updatedData.phone,
+        gender: updatedData.gender,
+        about: updatedData.about,
+        user_image: responseImage,
+      },
+    });
+  } catch (error) {
+    console.error("Server error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};

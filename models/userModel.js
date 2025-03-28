@@ -63,6 +63,15 @@ const User = sequelize.define(
       allowNull: true,
       defaultValue: null,
     },
+    user_role: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "appUser",
+    },
+    about: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,
