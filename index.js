@@ -8,7 +8,7 @@ import CategoryRoutes from "./routes/categoryRoutes.js";
 import MediaRoutes from "./routes/mediaRoute.js";
 import path from "path";
 dotenv.config();
-
+import cors from "cors";
 const app = express();
 
 // Middlewares
@@ -21,8 +21,13 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", CategoryRoutes);
-app.use("/api", MediaRoutes );
+app.use("/api", MediaRoutes);
 
+app.use(
+  cors({
+    origin: "*", // or restrict to your frontend domain
+  })
+);
 // Start the server and sync database
 const PORT = process.env.PORT || 5000;
 
