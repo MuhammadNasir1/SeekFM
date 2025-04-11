@@ -40,7 +40,7 @@ export const store = async (req, res) => {
       // If file is uploaded, get the filename
       const category_image = req.file ? req.file.filename : null;
 
-      const category = await Category.create({
+      const category = await Category.create({  
         category_name,
         category_image,
         category_status: category_status || 1, // Default to 1 if not provided
