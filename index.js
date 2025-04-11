@@ -7,8 +7,7 @@ import userRoutes from "./routes/userRoute.js";
 import CategoryRoutes from "./routes/categoryRoutes.js";
 import MediaRoutes from "./routes/mediaRoute.js";
 import path from "path";
-dotenv.config();
-import cors from "cors";
+dotenv.config();;
 const app = express();
 
 // Middlewares
