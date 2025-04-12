@@ -3,7 +3,6 @@ import path from "path";
 import fs from "fs"; // For file system operations (to delete old images)
 import Category from "../models/categoryModel.js";
 import dotenv from "dotenv";
-import NodeCache from "node-cache";
 
 dotenv.config();
 const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
@@ -19,8 +18,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage }).single("category_image");
-const cache = new NodeCache({ stdTTL: 1, checkperiod: 1 });
-cache.flushAll(); // Immediately remove all entries
 
 // Create a new category
 export const store = async (req, res) => {
@@ -52,9 +49,6 @@ export const store = async (req, res) => {
         category_status: category_status || 1,
       });
 
-      // Clear cache after creating a new category
-      cache.del("categories");
-
       return res.status(201).json({
         success: true,
         message: "Category created successfully",
@@ -69,16 +63,6 @@ export const store = async (req, res) => {
 // Get all active categories (status = 1)
 export const getAllCategories = async (req, res) => {
   try {
-    // Check if data exists in cache
-    const cachedCategories = cache.get("categories");
-    if (cachedCategories) {
-      return res.status(200).json({
-        success: true,
-        message: "Categories retrieved from cache",
-        data: cachedCategories,
-      });
-    }
-
     // Fetch from database where category_status = 1
     const categories = await Category.findAll({
       where: { category_status: 1 },
@@ -96,9 +80,6 @@ export const getAllCategories = async (req, res) => {
       updatedAt: category.updatedAt,
     }));
 
-    // Store result in cache
-    cache.set("categories", formattedCategories);
-
     return res.status(200).json({
       success: true,
       message: "Categories retrieved successfully",
@@ -108,8 +89,6 @@ export const getAllCategories = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
-
-
 
 // Update a category
 export const update = async (req, res) => {
@@ -158,9 +137,6 @@ export const update = async (req, res) => {
 
       await category.save();
 
-      // Clear cache after updating
-      cache.del("categories");
-
       return res.status(200).json({
         success: true,
         message: "Category updated successfully",
@@ -191,9 +167,6 @@ export const destroy = async (req, res) => {
     // Soft delete by setting status to 0
     category.category_status = 0;
     await category.save();
-
-    // Clear cache after deleting
-    cache.del("categories");
 
     return res.status(200).json({
       success: true,
