@@ -7,6 +7,7 @@ import userRoutes from "./routes/userRoute.js";
 import CategoryRoutes from "./routes/categoryRoutes.js";
 import MediaRoutes from "./routes/mediaRoute.js";
 import path from "path";
+import myCache from "node-cache";
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +62,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Something went wrong!" });
 });
 
+myCache.flushAll();
 // Start the server
 const PORT = process.env.PORT || 5000;
 
