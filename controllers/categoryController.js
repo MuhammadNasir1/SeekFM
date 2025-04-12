@@ -19,8 +19,8 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage }).single("category_image");
-const cache = new NodeCache({ stdTTL: 5 }); // Cache for 5 minutes
-// const cache = new NodeCache({ stdTTL: 60 * 5 }); // Cache for 5 minutes
+const cache = new NodeCache({ stdTTL: 1, checkperiod: 1 });
+cache.flushAll(); // Immediately remove all entries
 
 // Create a new category
 export const store = async (req, res) => {
