@@ -14,11 +14,6 @@ const Media = sequelize.define(
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: User,
-        key: "id",
-      },
-      onDelete: "CASCADE",
     },
     title: {
       type: DataTypes.STRING,
@@ -29,11 +24,7 @@ const Media = sequelize.define(
     },
     category_id: {
       type: DataTypes.INTEGER,
-      references: {
-        model: Category,
-        key: "category_id",
-      },
-      onDelete: "CASCADE",
+
     },
     banner: {
       type: DataTypes.TEXT,
