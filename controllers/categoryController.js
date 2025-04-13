@@ -49,10 +49,19 @@ export const store = async (req, res) => {
         category_status: category_status || 1,
       });
 
-      return res.status(201).json({
+      return res.status(200).json({
         success: true,
         message: "Category created successfully",
-        data: category,
+        data: {
+          category_id: category.category_id,
+          category_name: category.category_name,
+          category_image: category_image
+            ? `${BASE_URL}/uploads/categories/${category_image}`
+            : null,
+          category_status: category.category_status,
+          createdAt: category.createdAt,
+          updatedAt: category.updatedAt,
+        },
       });
     } catch (error) {
       res.status(500).json({ success: false, message: "Server error", error });
@@ -82,7 +91,7 @@ export const getAllCategories = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Categories retrieved successfully",
+      message: "Categories get successfully",
       data: formattedCategories,
     });
   } catch (error) {
