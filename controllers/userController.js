@@ -18,22 +18,22 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter for images only
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only JPEG, PNG, and JPG files are allowed"), false);
-  }
-};
-
-// Initialize multer
+// Initialize multer without type and size restrictions
 const upload = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 50 * 1024 * 1024 },
 }).single("user_image");
+
+// Upload timeout middleware
+const uploadTimeout = (req, res, next) => {
+  const timeoutDuration = 30000; // 30 seconds timeout
+  req.setTimeout(timeoutDuration, () => {
+    return res.status(408).json({
+      success: false,
+      message: "Image upload timed out",
+    });
+  });
+  next();
+};
 
 // Get User
 export const getUser = async (req, res) => {
@@ -61,7 +61,7 @@ export const getUser = async (req, res) => {
     } = user.get({ plain: true });
 
     // Construct full URL for user_image
-    const baseUrl = process.env.BASE_URL || "http://localhost:5000"; // Update with your actual domain
+    const baseUrl = process.env.BASE_URL || "http://localhost:5000";
     const userImageUrl = user_image ? `${baseUrl}/${user_image}` : null;
 
     // Parse media links if stored as a JSON string
@@ -95,15 +95,17 @@ export const storeChannel = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Wrap upload in a Promise to handle async properly
+    // Apply upload timeout
     await new Promise((resolve, reject) => {
-      upload(req, res, (err) => {
-        if (err instanceof multer.MulterError) {
-          return reject(new Error(`Upload error: ${err.message}`));
-        } else if (err) {
-          return reject(err);
-        }
-        resolve();
+      uploadTimeout(req, res, () => {
+        upload(req, res, (err) => {
+          if (err instanceof multer.MulterError) {
+            return reject(new Error(`Upload error: ${err.message}`));
+          } else if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
       });
     });
 
@@ -126,7 +128,7 @@ export const storeChannel = async (req, res) => {
       });
     }
 
-    let imagePath = user.user_image; // Preserve existing image path
+    let imagePath = user.user_image;
 
     // Handle new image upload
     if (req.file) {
@@ -142,7 +144,6 @@ export const storeChannel = async (req, res) => {
         }
       }
 
-      // Store relative path only
       imagePath = req.file.path.replace(/\\/g, "/");
     }
 
@@ -158,12 +159,10 @@ export const storeChannel = async (req, res) => {
       where: { id: req.user.userId },
     });
 
-    // Construct response with full URL for client if needed
     const responseImage = imagePath
       ? `${req.protocol}://${req.get("host")}/${imagePath}`
       : null;
 
-    // Send response
     res.status(200).json({
       success: true,
       message: "Channel updated successfully",
@@ -184,29 +183,28 @@ export const storeChannel = async (req, res) => {
   }
 };
 
-// update channel
+// Update channel
 export const updateChannel = async (req, res) => {
   try {
-    // Authentication check
     if (!req.user || !req.user.userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Wrap upload in a Promise to handle async properly
     await new Promise((resolve, reject) => {
-      upload(req, res, (err) => {
-        if (err instanceof multer.MulterError) {
-          return reject(new Error(`Upload error: ${err.message}`));
-        } else if (err) {
-          return reject(err);
-        }
-        resolve();
+      uploadTimeout(req, res, () => {
+        upload(req, res, (err) => {
+          if (err instanceof multer.MulterError) {
+            return reject(new Error(`Upload error: ${err.message}`));
+          } else if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
       });
     });
 
     const { channel_name, channel_description, channel_media_links } = req.body;
 
-    // Validate required fields
     if (!channel_name) {
       return res.status(400).json({
         success: false,
@@ -214,7 +212,6 @@ export const updateChannel = async (req, res) => {
       });
     }
 
-    // Find existing user
     const user = await User.findOne({ where: { id: req.user.userId } });
     if (!user) {
       return res.status(404).json({
@@ -223,12 +220,10 @@ export const updateChannel = async (req, res) => {
       });
     }
 
-    let imagePath = user.user_image; // Preserve existing image path
+    let imagePath = user.user_image;
 
-    // Handle new image upload
     if (req.file) {
       try {
-        // Delete old image if it exists
         if (user.user_image) {
           const oldImagePath = path.join(process.cwd(), user.user_image);
           if (fs.existsSync(oldImagePath)) {
@@ -239,11 +234,9 @@ export const updateChannel = async (req, res) => {
         console.error("Error deleting old image:", deleteError);
       }
 
-      // Store relative path only
       imagePath = req.file.path.replace(/\\/g, "/");
     }
 
-    // Update user record
     const updatedData = {
       channel_name,
       channel_description: channel_description || null,
@@ -255,12 +248,10 @@ export const updateChannel = async (req, res) => {
       where: { id: req.user.userId },
     });
 
-    // Construct response with full URL for client if needed
     const responseImage = imagePath
       ? `${req.protocol}://${req.get("host")}/${imagePath}`
       : null;
 
-    // Send response
     res.status(200).json({
       success: true,
       message: "Channel updated successfully",
@@ -281,24 +272,23 @@ export const updateChannel = async (req, res) => {
   }
 };
 
-// update profile
-
+// Update profile
 export const updateUser = async (req, res) => {
   try {
-    // Authentication check
     if (!req.user || !req.user.userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Wrap upload in a Promise to handle async properly
     await new Promise((resolve, reject) => {
-      upload(req, res, (err) => {
-        if (err instanceof multer.MulterError) {
-          return reject(new Error(`Upload error: ${err.message}`));
-        } else if (err) {
-          return reject(err);
-        }
-        resolve();
+      uploadTimeout(req, res, () => {
+        upload(req, res, (err) => {
+          if (err instanceof multer.MulterError) {
+            return reject(new Error(`Upload error: ${err.message}`));
+          } else if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
       });
     });
 
@@ -312,12 +302,10 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    let imagePath = user.user_image; // Preserve existing image path
+    let imagePath = user.user_image;
 
-    // Handle new image upload
     if (req.file) {
       try {
-        // Delete old image if it exists
         if (user.user_image) {
           const oldImagePath = path.join(process.cwd(), user.user_image);
           if (fs.existsSync(oldImagePath)) {
@@ -328,11 +316,9 @@ export const updateUser = async (req, res) => {
         console.error("Error deleting old image:", deleteError);
       }
 
-      // Store relative path only
       imagePath = req.file.path.replace(/\\/g, "/");
     }
 
-    // Update user record
     const updatedData = {
       name,
       phone,
@@ -345,12 +331,10 @@ export const updateUser = async (req, res) => {
       where: { id: req.user.userId },
     });
 
-    // Construct response with full URL for client if needed
     const responseImage = imagePath
       ? `${req.protocol}://${req.get("host")}/${imagePath}`
       : null;
 
-    // Send response
     res.status(200).json({
       success: true,
       message: "User updated successfully",

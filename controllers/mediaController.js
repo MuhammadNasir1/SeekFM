@@ -128,29 +128,58 @@ export const store = async (req, res) => {
   });
 };
 export const getMedia = async (req, res) => {
-    try {
-      const { category_id } = req.query; // Get category filter from query params
-  
-      const whereClause = category_id ? { category_id } : {}; // Apply filter if category_id exists
-  
-      const mediaItems = await Media.findAll({ where: whereClause });
-  
-      const mediaWithBaseUrl = mediaItems.map((media) => ({
-        ...media.toJSON(),
-        banner: media.banner ? `${BASE_URL}/${media.banner}` : null,
-        audio: media.audio ? `${BASE_URL}/${media.audio}` : null,
-      }));
-  
-      res.json({
-        success: true,
-        media: mediaWithBaseUrl,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Server error",
-        error: error.message,
-      });
+  try {
+    const { category_id } = req.query; // Get category filter from query params
+
+    const whereClause = category_id ? { category_id } : {}; // Apply filter if category_id exists
+
+    const mediaItems = await Media.findAll({ where: whereClause });
+
+    const mediaWithBaseUrl = mediaItems.map((media) => ({
+      ...media.toJSON(),
+      banner: media.banner ? `${BASE_URL}/${media.banner}` : null,
+      audio: media.audio ? `${BASE_URL}/${media.audio}` : null,
+    }));
+
+    res.json({
+      success: true,
+      media: mediaWithBaseUrl,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
+export const getUserMedia = async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
-  };
-  
+
+    const mediaItems = await Media.findAll({
+      where: { user_id: req.user.userId },
+    });
+
+    const mediaWithBaseUrl = mediaItems.map((media) => ({
+      ...media.toJSON(),
+      banner: media.banner ? `${BASE_URL}/${media.banner}` : null,
+      audio: media.audio ? `${BASE_URL}/${media.audio}` : null,
+    }));
+
+    res.json({
+      success: true,
+      media: mediaWithBaseUrl,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
