@@ -2,6 +2,9 @@ import User from "../models/userModel.js";
 import path from "path";
 import multer from "multer";
 import fs from "fs";
+import Category from "../models/categoryModel.js";
+import { Op } from "sequelize";
+import Media from "../models/mediaModel.js";
 
 // Configure multer storage
 const storage = multer.diskStorage({
@@ -345,6 +348,90 @@ export const updateUser = async (req, res) => {
         about: updatedData.about,
         user_image: responseImage,
       },
+    });
+  } catch (error) {
+    console.error("Server error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getDashboardData = async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userCount = await User.count({ where: { user_role: "appUser" } });
+    const creatorCount = await User.count({
+      where: { channel_name: { [Op.ne]: null, [Op.ne]: "" } },
+    });
+    const categoryCount = await Category.count({
+      where: { category_status: { [Op.ne]: 0 } },
+    });
+    const audioCount = await Media.count();
+    res.status(200).json({
+      success: true,
+      message: "Dashboard Data get successfully",
+      data: {
+        userCount,
+        creatorCount,
+        audioCount,
+        categoryCount,
+      },
+    });
+  } catch (error) {
+    console.error("Server error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+export const getAppUsers = async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const appUsers = await User.findAll({
+      where: { user_role: "appUser" },
+      attributes: { exclude: ["password"] }, // exclude password
+    });
+
+    // Construct full URLs for user images and parse media links
+    const baseUrl = process.env.BASE_URL || "";
+    const usersWithFormattedData = appUsers.map((user) => {
+      const plainUser = user.get({ plain: true });
+
+      let parsedMediaLinks = [];
+      try {
+        parsedMediaLinks = plainUser.channel_media_links
+          ? JSON.parse(plainUser.channel_media_links)
+          : [];
+      } catch (error) {
+        console.error(
+          `Error parsing media links for user ${plainUser.id}:`,
+          error
+        );
+      }
+
+      return {
+        ...plainUser,
+        user_image: plainUser.user_image
+          ? `${baseUrl}/${plainUser.user_image}`
+          : null,
+        channel_media_links: parsedMediaLinks,
+      };
+    });
+
+    res.json({
+      success: true,
+      users: usersWithFormattedData,
     });
   } catch (error) {
     console.error("Server error:", error);
