@@ -129,11 +129,16 @@ export const store = async (req, res) => {
     }
   });
 };
+
 export const getMedia = async (req, res) => {
   try {
-    const { category_id } = req.query;
+    const { category_id, all } = req.query;
 
-    const whereClause = category_id ? { category_id } : {};
+    // Dynamic where clause based on `all` param
+    const whereClause = {
+      ...(category_id && { category_id }),
+      ...(all === "true" ? {} : { media_status: 1 }), // default → only approved (status 1)
+    };
 
     // Step 1: Fetch all media items
     const mediaItems = await Media.findAll({ where: whereClause });
@@ -158,13 +163,13 @@ export const getMedia = async (req, res) => {
       attributes: ["id", "name"],
     });
 
-    // Step 4: Create lookup maps for categories and users
+    // Step 4: Create lookup maps
     const categoryMap = new Map(
       categories.map((cat) => [cat.category_id, cat.category_name])
     );
     const userMap = new Map(users.map((user) => [user.id, user.name]));
 
-    // Step 5: Enrich media items using the lookup maps
+    // Step 5: Enrich media items
     const mediaWithBaseUrl = mediaItems.map((media) => {
       const mediaJSON = media.toJSON();
       return {
@@ -247,7 +252,6 @@ export const getUserMedia = async (req, res) => {
   }
 };
 
-
 export const updateMediaStatus = async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {
@@ -280,6 +284,8 @@ export const updateMediaStatus = async (req, res) => {
       message: "Media status updated successfully",
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
