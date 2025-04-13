@@ -20,9 +20,8 @@ app.use(helmet()); // Add security headers
 
 // Serve static files (e.g., uploaded media)
 app.use("/uploads", (req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*"); // Allow from all origins
-  res.header("Access-Control-Allow-Methods", "GET");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   next();
 }, express.static(path.join(process.cwd(), "uploads")));
 
