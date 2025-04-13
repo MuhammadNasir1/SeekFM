@@ -20,6 +20,45 @@ const storage = multer.diskStorage({
 const upload = multer({ storage }).single("category_image");
 
 // Create a new category
+// export const store = async (req, res) => {
+//   upload(req, res, async (err) => {
+//     if (err) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "File upload error", err });
+//     }
+
+//     try {
+//       if (!req.user || !req.user.userId) {
+//         return res.status(401).json({ message: "Unauthorized" });
+//       }
+
+//       const { category_name, category_status } = req.body;
+//       if (!category_name) {
+//         return res
+//           .status(400)
+//           .json({ success: false, message: "Category name is required" });
+//       }
+
+//       // If file is uploaded, get the filename
+//       const category_image = req.file ? req.file.filename : null;
+
+//       const category = await Category.create({
+//         category_name,
+//         category_image,
+//         category_status: category_status || 1,
+//       });
+
+//       return res.status(201).json({
+//         success: true,
+//         message: "Category created successfully",
+//         data: category,
+//       });
+//     } catch (error) {
+//       res.status(500).json({ success: false, message: "Server error", error });
+//     }
+//   });
+// };
 export const store = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
@@ -49,17 +88,28 @@ export const store = async (req, res) => {
         category_status: category_status || 1,
       });
 
+      // Add full image URL
+      const formattedCategory = {
+        category_id: category.category_id,
+        category_name: category.category_name,
+        category_image: category_image
+          ? `${BASE_URL}/uploads/categories/${category_image}`
+          : null,
+        category_status: category.category_status,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+      };
+
       return res.status(201).json({
         success: true,
         message: "Category created successfully",
-        data: category,
+        data: formattedCategory,
       });
     } catch (error) {
       res.status(500).json({ success: false, message: "Server error", error });
     }
   });
 };
-
 // Get all active categories (status = 1)
 export const getAllCategories = async (req, res) => {
   try {
