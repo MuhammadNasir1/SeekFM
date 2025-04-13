@@ -92,9 +92,9 @@ export const store = async (req, res) => {
       const formattedCategory = {
         category_id: category.category_id,
         category_name: category.category_name,
-        category_image: category_image
-          ? `${BASE_URL}/uploads/categories/${category_image}`
-          : null,
+        category_image: category_image,
+          // ? `${BASE_URL}/uploads/categories/${category_image}`
+          // : null,
         category_status: category.category_status,
         createdAt: category.createdAt,
         updatedAt: category.updatedAt,
