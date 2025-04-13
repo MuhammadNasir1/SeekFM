@@ -19,7 +19,13 @@ app.use(express.json()); // Parse JSON bodies
 app.use(helmet()); // Add security headers
 
 // Serve static files (e.g., uploaded media)
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/uploads", (req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // Allow from all origins
+  res.header("Access-Control-Allow-Methods", "GET");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  next();
+}, express.static(path.join(process.cwd(), "uploads")));
+
 
 // Routes (authRoutes removed)
 app.use("/api/auth", authRoutes);
