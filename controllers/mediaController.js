@@ -246,3 +246,40 @@ export const getUserMedia = async (req, res) => {
     });
   }
 };
+
+
+export const updateMediaStatus = async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+    const { media_status } = req.body;
+
+    if (media_status === undefined) {
+      return res
+        .status(400)
+        .json({ success: false, message: "media_status is required" });
+    }
+
+    const media = await Media.findByPk(id);
+
+    if (!media) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Media not found" });
+    }
+
+    // Update media status
+    media.media_status = media_status;
+    await media.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Media status updated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
+  }
+};
