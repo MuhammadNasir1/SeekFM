@@ -5,6 +5,7 @@ import helmet from "helmet";
 import userRoutes from "./routes/userRoute.js";
 import CategoryRoutes from "./routes/categoryRoutes.js";
 import MediaRoutes from "./routes/mediaRoute.js";
+import authRoutes from "./routes/authRoutes.js";
 import path from "path";
 
 // Load environment variables
@@ -21,6 +22,7 @@ app.use(helmet()); // Add security headers
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Routes (authRoutes removed)
+app.use("/api/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", CategoryRoutes);
 app.use("/api", MediaRoutes);
