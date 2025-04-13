@@ -4,6 +4,8 @@ import fs from "fs";
 import dotenv from "dotenv";
 import NodeCache from "node-cache";
 import Media from "../models/mediaModel.js";
+import Category from "../models/categoryModel.js";
+import User from "../models/userModel.js";
 dotenv.config();
 const BASE_URL = process.env.BASE_URL || "http://localhost:5000"; // Change to your actual domain
 // Configure multer storage for media files
@@ -129,21 +131,55 @@ export const store = async (req, res) => {
 };
 export const getMedia = async (req, res) => {
   try {
-    const { category_id } = req.query; // Get category filter from query params
+    const { category_id } = req.query;
 
-    const whereClause = category_id ? { category_id } : {}; // Apply filter if category_id exists
+    const whereClause = category_id ? { category_id } : {};
 
+    // Step 1: Fetch all media items
     const mediaItems = await Media.findAll({ where: whereClause });
 
-    const mediaWithBaseUrl = mediaItems.map((media) => ({
-      ...media.toJSON(),
-      banner: media.banner ? `${BASE_URL}/${media.banner}` : null,
-      audio: media.audio ? `${BASE_URL}/${media.audio}` : null,
-    }));
+    // Step 2: Get all category IDs and user IDs from the media items
+    const categoryIds = [
+      ...new Set(
+        mediaItems.map((media) => media.category_id).filter((id) => id)
+      ),
+    ];
+    const userIds = [
+      ...new Set(mediaItems.map((media) => media.user_id).filter((id) => id)),
+    ];
 
+    // Step 3: Fetch all categories and users in bulk
+    const categories = await Category.findAll({
+      where: { category_id: categoryIds },
+      attributes: ["category_id", "category_name"],
+    });
+    const users = await User.findAll({
+      where: { id: userIds },
+      attributes: ["id", "name"],
+    });
+
+    // Step 4: Create lookup maps for categories and users
+    const categoryMap = new Map(
+      categories.map((cat) => [cat.category_id, cat.category_name])
+    );
+    const userMap = new Map(users.map((user) => [user.id, user.name]));
+
+    // Step 5: Enrich media items using the lookup maps
+    const mediaWithBaseUrl = mediaItems.map((media) => {
+      const mediaJSON = media.toJSON();
+      return {
+        ...mediaJSON,
+        banner: mediaJSON.banner ? `${BASE_URL}/${mediaJSON.banner}` : null,
+        audio: mediaJSON.audio ? `${BASE_URL}/${mediaJSON.audio}` : null,
+        category_name: categoryMap.get(mediaJSON.category_id) || null,
+        username: userMap.get(mediaJSON.user_id) || null,
+      };
+    });
+
+    // Step 6: Send the response
     res.json({
       success: true,
-      media: mediaWithBaseUrl,
+      data: mediaWithBaseUrl,
     });
   } catch (error) {
     res.status(500).json({
@@ -153,7 +189,6 @@ export const getMedia = async (req, res) => {
     });
   }
 };
-
 
 export const getUserMedia = async (req, res) => {
   try {
@@ -165,11 +200,39 @@ export const getUserMedia = async (req, res) => {
       where: { user_id: req.user.userId },
     });
 
-    const mediaWithBaseUrl = mediaItems.map((media) => ({
-      ...media.toJSON(),
-      banner: media.banner ? `${BASE_URL}/${media.banner}` : null,
-      audio: media.audio ? `${BASE_URL}/${media.audio}` : null,
-    }));
+    // Step 1: Extract category IDs
+    const categoryIds = [
+      ...new Set(mediaItems.map((m) => m.category_id).filter(Boolean)),
+    ];
+    const userId = req.user.userId;
+
+    // Step 2: Fetch category names and current user name
+    const [categories, user] = await Promise.all([
+      Category.findAll({
+        where: { category_id: categoryIds },
+        attributes: ["category_id", "category_name"],
+      }),
+      User.findOne({
+        where: { id: userId },
+        attributes: ["id", "name"],
+      }),
+    ]);
+
+    const categoryMap = new Map(
+      categories.map((cat) => [cat.category_id, cat.category_name])
+    );
+
+    // Step 3: Enrich media items
+    const mediaWithBaseUrl = mediaItems.map((media) => {
+      const mediaJSON = media.toJSON();
+      return {
+        ...mediaJSON,
+        banner: mediaJSON.banner ? `${BASE_URL}/${mediaJSON.banner}` : null,
+        audio: mediaJSON.audio ? `${BASE_URL}/${mediaJSON.audio}` : null,
+        category_name: categoryMap.get(mediaJSON.category_id) || null,
+        username: user?.name || null,
+      };
+    });
 
     res.json({
       success: true,
