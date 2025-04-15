@@ -23,37 +23,43 @@ const storage = multer.diskStorage({
 });
 
 // File filter for images and audio files
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "audio/mpeg",
-    "audio/wav",
-    "audio/mp3",
-  ];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(
-      new Error(
-        "Only JPEG, PNG, JPG images and MP3, WAV audio files are allowed"
-      ),
-      false
-    );
-  }
-};
+// const fileFilter = (req, file, cb) => {
+//   const allowedTypes = [
+//     "image/jpeg",
+//     "image/png",
+//     "image/jpg",
+//     "audio/mpeg",
+//     "audio/wav",
+//     "audio/mp3",
+//   ];
+//   if (allowedTypes.includes(file.mimetype)) {
+//     cb(null, true);
+//   } else {
+//     cb(
+//       new Error(
+//         "Only JPEG, PNG, JPG images and MP3, WAV audio files are allowed"
+//       ),
+//       false
+//     );
+//   }
+// };
 
-// Use `.fields()` to specify `banner` and `audio` separately
+// // Use `.fields()` to specify `banner` and `audio` separately
+// const upload = multer({
+//   storage,
+//   fileFilter,
+//   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+// }).fields([
+//   { name: "banner", maxCount: 1 },
+//   { name: "audio", maxCount: 1 },
+// ]);
+
 const upload = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 }).fields([
   { name: "banner", maxCount: 1 },
   { name: "audio", maxCount: 1 },
 ]);
-
 const cache = new NodeCache({ stdTTL: 60 * 5 }); // Cache for 5 minutes
 
 export const store = async (req, res) => {
